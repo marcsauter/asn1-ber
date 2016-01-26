@@ -188,7 +188,7 @@ func ReadPacket(reader io.Reader) (*Packet, error) {
 	idx := uint64(2)
 	datalen := uint64(buf[1])
 	if Debug {
-		fmt.Printf("Read: datalen = %d len(buf) = %d ", datalen, len(buf))
+		fmt.Printf("Read: datalen = %d len(buf) = %d\n", datalen, len(buf))
 		for _, b := range buf {
 			fmt.Printf("%02X ", b)
 		}
@@ -204,7 +204,7 @@ func ReadPacket(reader io.Reader) (*Packet, error) {
 		}
 		datalen = DecodeInteger(buf[2 : 2+a])
 		if Debug {
-			fmt.Printf("Read: a = %d  idx = %d  datalen = %d  len(buf) = %d", a, idx, datalen, len(buf))
+			fmt.Printf("Read: a = %d  idx = %d  datalen = %d  len(buf) = %d\n", a, idx, datalen, len(buf))
 			for _, b := range buf {
 				fmt.Printf("%02X ", b)
 			}
@@ -223,6 +223,7 @@ func ReadPacket(reader io.Reader) (*Packet, error) {
 		for _, b := range buf {
 			fmt.Printf("%02X ", b)
 		}
+		fmt.Printf("\n")
 	}
 
 	p := DecodePacket(buf)
@@ -237,6 +238,13 @@ func DecodeString(data []byte) (ret string) {
 }
 
 func DecodeInteger(data []byte) (ret uint64) {
+	if Debug {
+		fmt.Printf("DecodeInteger - len = %d\n", len(data))
+		for _, b := range data {
+			fmt.Printf("%02X ", b)
+		}
+		fmt.Printf("\n")
+	}
 	for _, i := range data {
 		ret = ret * 256
 		ret = ret + uint64(i)
@@ -246,12 +254,16 @@ func DecodeInteger(data []byte) (ret uint64) {
 
 func EncodeInteger(val uint64) []byte {
 	var out bytes.Buffer
-	found := false
-	shift := uint(56)
-	mask := uint64(0xFF00000000000000)
+	var shift uint = 56
+	var mask uint64 = 0xFF00000000000000
+	var found bool = false
+
 	for mask > 0 {
 		if !found && (val&mask != 0) {
 			found = true
+			if byte((val&mask)>>shift)>>7 == 1 {
+				out.Write([]byte{byte(0)})
+			}
 		}
 		if found || (shift == 0) {
 			out.Write([]byte{byte((val & mask) >> shift)})
